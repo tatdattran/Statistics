@@ -1,0 +1,224 @@
+---
+title: "Aufgabe 3: Zusammenhangshypothese -Gruppe C"
+output: html_notebook
+---
+
+
+
+
+## Aufgabenstellung
+1)	Hypothese 
+2)	Voraussetzungen
+3)	Grundlegende Konzepte: Was ist Pearson? 
+4)	Grafische Veranschaulichung des Zusammenhangs
+5)	Deskriptive Statistik
+6)	Ergebnisse der Korrelationsanalyse
+7)	Berechnung des Bestimmtheitsmasses
+8)	Berechnung der Effektstärke
+9)	Eine Aussage
+
+Ziel der Studie ist es herauszufinden, ob eine Zusammenhang zwischen dem Gewicht und Blutdruck der Patient_innen besteht.
+Dafür wird der Pearson angewendet. 
+
+
+Datensatz: cleanhospital.xlsx<br>
+Variable1: Körpergewicht<br>
+Varibale2: Blutdruck<br>
+
+```{r}
+df_pearson <- cleanhospital <- read_excel("cleanhospital.xlsx")
+View(cleanhospital)
+```
+
+
+
+```{r}
+library(psych)
+library(car)
+library(dplyr)
+library(ggplot2)
+```
+# ------------------------------------------------------------------------------
+
+#### Umgang mit fehlenden Werten
+
+
+```{r}
+sum(is.na(df_pearson))
+```
+
+```{r}
+df_pearson1 <- na.omit(df_pearson)
+```
+
+
+```{r}
+summary(df_pearson1$weight)
+```
+
+```{r}
+summary(df_pearson1$systolic_blood_pressure)
+```
+```{r}
+sum(is.na(df_pearson1$weight))
+```
+
+# ------------------------------------------------------------------------------
+
+
+# 1) Hypothese
+
+H0 : Es gibt keinen Zusammenhang zwischen dem Körpergewicht und Blutdruck der Patient_innen.
+
+H1 : Es gibt einen Zusammenhang zwischen dem Körpergewicht und Blutdruck der Patient
+
+
+
+# ------------------------------------------------------------------------------
+
+# 2) Voraussetzungen
+
+- Die Variablen sind normalverteilt ($n>30$), $n=210$. Ja, siehe Histogramm.
+- Der untersuchte Zusammenhang zwischen den Variablen muss linear sein. Ja, siehe qqplot.
+- Die Variablen sind mindestens intervallskaliert. Ja, Blutdruck und Gewicht sind metrisch.
+
+## Histogram fuer die Normalverteilung
+
+```{r}
+hist(df_pearson1$weight, main = "Histogramm des Körpergewichtes", xlab = "Gewicht in kg", ylab = "Anzahl", col = "green" )
+```
+
+
+```{r}
+hist(df_pearson1$systolic_blood_pressure, main = "Histogramm des Blutdruck", xlab = "Blutdruck", ylab = "Anzahl", col = "red" )
+```
+
+
+Es ist deutlich zu erkennen, dass für beide Variablen eine Normalverteilung vorliegt und diese Vorrausetzung für den Pearson erfüllt ist.
+
+
+
+# ------------------------------------------------------------------------------
+# 3)	Grundlegende Konzepte: Was ist Pearson?
+
+Die Korrelation beschreibt den Zusammenhang von zwei intervallskalierten Merkmalen/Variablen einer Zufallsstichprobe. Die Stärke des Zusammenhangs lässt sich mit Hilfe des Korrelationskoeffizienten r nach Bravais und Pearson berechnen. Die Variablen sind unabhängig voneinander und folglich werden keine kausalen Aussagen gemacht.
+
+
+
+# ------------------------------------------------------------------------------
+# 4)	Grafische Veranschaulichung des Zusammenhangs
+
+```{r}
+library(ggplot2)
+ggplot(df_pearson1, aes(x = weight, y = systolic_blood_pressure))+ 
+geom_point(size = 2)+ 
+geom_smooth(method = "lm",col = "red")
+```
+Dass Streudigramm zeigt, dass es keinen linear-positiven Zusammenhang zwischen den Variablen Gewicht und Blutdruck gibt.
+
+# ------------------------------------------------------------------------------
+
+# 5) Deskriptive Statistik
+
+```{r}
+summary(df_pearson1)
+```
+
+```{r}
+psych::describe.by(df_pearson1$weight)
+```
+
+
+```{r}
+psych::describe.by(df_pearson1$systolic_blood_pressure)
+```
+
+
+
+Der Mittelwert bei dem Gewicht liegt bei $80.82$ K.g ($SD = 21.19 , n = 210$). Der Mittelwert für Blutdruck liegt bei bei $131.06$ mm/hg ($SD = 23.74, n = 210$).
+
+
+
+
+
+
+
+
+# ------------------------------------------------------------------------------
+
+# 6) Ergebnisse der Korrelationsanalyse
+
+```{r}
+test <- cor.test(df_pearson1$weight, df_pearson1$systolic_blood_pressure)
+test
+```
+
+
+Es wird ersichtlich, dass kein Zusammenhang zwischen dem Körpergewicht und Blutdruck der Patient_innen besteht 
+($r = 0.00894, p = 0.897, n = 210$). Der Korrelationskoeffizent beträgt $0.00$ und $p>0,05$. Das Gewicht hat keinen Einfluss auf die Höhe des Blutdrucks und umgekehrt.
+
+
+
+
+# ------------------------------------------------------------------------------
+
+# 7) Berechnung des Bestimmtheitsmasses
+
+
+```{r}
+rbestimmt <- (test$estimate)^2  *100
+sprintf("Bestimmtheitsmaß: %.2f Prozent",rbestimmt)
+```
+
+ 
+
+
+
+# ------------------------------------------------------------------------------
+
+# 8) Berechnung der Effektstärke
+
+```{r}
+sprintf("Effektstärke: %.4f",test$estimate)
+```
+
+
+Zur Beurteilung der Groesse des Effektes dient die Einteilung von Cohen (1992): 
+
+$$\begin{align}
+\text{Schwacher Effekt: } 0.10 &< ||r|| < 0.30 \\
+\text{Schwacher bis mittlerer Effekt: } 0.30 &= ||r|| \\
+\text{Mittlerer Effekt: } 0.30 &< ||r|| < 0.50 \\
+\text{Mittlerer bis starker Effekt: }0.50 &= ||r|| \\
+\text{Starker Effekt: } 0.50 &< ||r|| 
+\end{align}|$$
+
+Eine Effektstärke von $0.00$ bedeutet nach Cohen (1992), dass es keinem Effekt gibt.
+
+
+
+# ------------------------------------------------------------------------------
+
+# 9) Die Aussage
+
+Bereits das Streudigramm gezeigt hat, gibt es keinen linear-positiven Zusammenhang zwischen den Variablen Gewicht und Blutdruck. Bei einer Korrelation nach Bravais-Pearson kann jedoch nur der ungerichtete lineare Zusammenhang zweier Variablen untersucht werden. Eigentlich hätte daher bereits zu diesem Zeitpunkt entschieden werden können, dass ein Korrelationsanalyse kein Ergebnis über einen Zusammenhang liefern wird. Wir haben die Korrelationsanalyse dennoch vorgenommen. Aus den Ergebnissen der Berechnung des Korrelationskoeffizienten r lässt sich wie erwartet erkennen, dass kein Zusammenhang zwischen dem Körpergewicht und Blutdruck der Patient_innen besteht ($r = 0, p = 0.8, n = 210$). Entsprechend ist auch keine Effektstärke zu berechnen. Das Gewicht der Patient_innen hat keinen Einfluss auf die Höhe des Blutdrucks der Patient_innen und umgekehrt. Die H0 wir beibehalten.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

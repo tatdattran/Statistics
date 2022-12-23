@@ -1,0 +1,189 @@
+---
+title: "Aufgabe 4: Unterschiedshypothese -Gruppe C"
+output: html_notebook
+---
+
+```{r}
+library(pwr)
+library(compute.es)
+library(dplyr)
+library(ggplot2)
+```
+
+
+
+```{r}
+library(readxl)
+hosp <- read_excel("cleanhospital.xlsx")
+View(hosp)
+```
+
+```{r}
+hosp1 <- na.omit(hosp)
+```
+
+### Datensatz: cleanhospital.xlsx <br>
+### Var 1 = comorbidities (UV) <br>
+### Var 2 = hemoglobin (AV)
+
+## Aufgabenstellung 
+1)	Hypothese 
+2)	Voraussetzungen des t-Tests für unabhängige Stichproben
+3)	Grundlegende Konzepte: Was ist t-Test für unabhängige Stichproben?
+4)	Deskriptive Statistiken
+5)	Test auf Varianzhomogenität (Levene-Test)
+6)	Ergebnisse des t-Tests für unabhängige Stichproben
+7)	Berechnung der Effektstärke
+8)	Eine Aussage
+
+### Beschreibung
+
+Das Hämoglobin ist der rote Blutfarbstoff, der den roten Blutkörperchen ihre Farbe verleiht. Die wichtigste Funktion des Hämoglobins ist der Transport von Sauerstoff, den er in der Lunge aufnimmt und durch die Blutgefäße transportiert. Auf dem Rückweg sorgt er für den Abtransport des Kohlendioxids, das schließlich über die Lunge wieder ausgeatmet wird. Der normale Hämoglobinwert für eine Frau liegt zwischen 115 und 160 g/l und für einen Mann zwischen 135 und 180 g/l.
+Ein zu niedriger Hämoglobinwert wird als Anämie bezeichnet. Die Prävalenz von Anämie bei hospitalisierten Patienten mit COVID-19 wurden inanderen Studien bereits als hoch beurteilt und konnte in Zusammenhang mit einem insgesammt schlechten outcome der COVID-19-Erkrankungen gebracht werden. (Vgl. Faghih Dinevari, M., Somi, M.H., Sadeghi Majd, E. et al. Anemia predicts poor outcomes of COVID-19 in hospitalized patients: a prospective study in Iran. BMC Infect Dis 21, 170 (2021). https://doi.org/10.1186/s12879-021-05868-4)
+
+209 Patient_innen mit Covid-19, die in ein kanadischen Krankenhauses aufgenommen wurden, wurden als Stichprobe zur Prüfung der folgenden Fragestellung gezogen, ob Covid19-Patient_innen mit der Vorerkrankung "Bluthochdruck"  einen niedrigeren Hämoglubinwert als Patient_innen mit keiner oder einer anderen Vorerkrankungen haben.
+Vorerkrankung Bluthochdruck (hypertension) und keine oder eine andere Vorerkrankung (other_non) sind die beiden dichotomen Variablen. Die Variable es Hämoglubinwert (hemoglobin) ist die metrische Variable.
+Der zu analysierende Datensatz enthält neben einer Personennummer (ID), den Status der Vorerkrankung Bluthochdruck (comorbidities) und den Messwert des Hämoglubin im Blut (g/l). Je kleiner der Wert, desto niedriger ist die Hämoglubinmenge im Blut.
+
+## 1)	Hypothese
+
+H1: Es gibt einen Unterschied zwischen dem Hemoglubinwert von Patient_innen mit und ohne die Vorerkrankung "Bluthochdruck". 
+
+$$M_{S}≠M_{NS}$$
+
+H0: Es gibt keinen Unterschied zwischen dem Hemoglubinwert von Patient_innen mit und ohne die Vorerkrankung "Bluthochdruck".
+
+$$M_{S}=M_{NS}$$
+
+
+
+## 2)	Voraussetzungen des t-Tests für unabhängige Stichproben
+
+* Die abhängige Variable ist intervallskaliert
+-> Ja, Hämoglubinwert ist metrisch (AV).
+* Es liegt eine unabhängige Variable vor, mittels der die beiden zu vergleichenden Gruppen gebildet werden
+-> Ja, entweder Personen haben die Vorerkrankung "Bluthochdruck" oder sie haben diese Vorerkrankung nicht.
+* Das untersuchte Merkmal ist in den Grundgesamtheiten der beiden Gruppen normalverteilt
+-> Ja, siehe Histogramme
+* Homogenität der Varianzen: Die Gruppen kommen aus Grundgesamtheiten mit annähernd identischer Varianz
+-> Ja, siehe Levene-Test
+* Die einzelnen Messwerte sind voneinander unabhängig (der Hämoglubinwert eines Patienten hat keinen Einfluss auf den Hämoglubinwert eines anderen Patienten)
+Ja, ist gegeben. Die Personen in der Stichprobe sind nicht miteinander verbunden, z.B. weil sie in den gleichen Unternehmen arbeiten etc.
+
+
+
+### Prüfung der Normalverteilung mithilfe von Histogrammen
+
+
+```{r}
+hist(hosp1$hemoglobin)
+
+```
+
+
+```{r}
+  hosp1 %>%
+  group_by(comorbidities) %>%
+  ggplot(aes(hemoglobin)) + 
+    geom_histogram( binwidth=3, aes(fill=comorbidities), color="black", alpha=0.7) + # Erstelle ein Histogramm, Unterteilung, Farbe + Transparenz
+   facet_wrap(~comorbidities)+ # Zwei Graphen
+    theme_classic()+ #Farbschema
+    labs(x="Vorerkrankungen", y="Hämoglobin g/l") # Beschriftung
+```
+Wie die Darstellung der Histogramme deutlich zeiht, ist das untersuchte Merkmal "Hämoglobin" sowohl in der gesamten Stichprobe, wie in der Grundgesamtheiten der beiden Gruppen normalverteilt.
+
+
+
+
+## 3)	Grundlegende Konzepte: Was ist t-Test für unabhängige Stichproben?
+
+Der t-Test für unabhängige Stichproben testet, ob die Mittelwerte zweier unabhängiger Stichproben verschieden sind.
+
+Die Fragestellung des t-Tests für unabhängige Stichproben wird oft so verkürzt: "Unterscheiden sich die Mittelwerte zweier unabhängiger Stichproben?"
+
+Um zu prüfen, ob die Mittelwertsunterschiede statistisch signifikant sind, muss die zugehörige Teststatistik berechnet werden. Die Verteilung der Teststatistik t folgt einer theoretischen t-Verteilung, deren Form sich in Abhängigkeit der Freiheitsgrade unterscheidet. Die dem Test zu Grunde liegende t-Verteilung gibt dem Test den Namen t-Test.
+
+
+
+## 4)	Deskriptive Statistiken
+
+```{r}
+head(hosp1)
+```
+
+
+```{r}
+library(psych)
+describe(hosp1)
+```
+
+
+```{r}
+library(dplyr)
+me <-hosp1 %>%
+group_by(comorbidities) %>%
+summarize(n = n(), mean = mean(hemoglobin), median = median(hemoglobin), sd = sd(hemoglobin))
+me
+```
+
+Es zeigt sich für diese Fragestellung nur ein kleiner Mittelwertsunterschied. Der mittlere Hämoglobinwert der Patient_innen mit der Vorerkrankung Bluthochdruck ($M = 128.31, SD = 16.60, n = 101$) ist etwas niedriger als der mittlere Hämoglobinwert der Patient_innen mit einer anderen oder ohne eine Vorerkrankung ($M = 133.33 SD = 17.98, n = 109$). Allerdings kann beim Hämoglobinwert, der bei einer Covod-19 Erkrankung kritisch ist, bereits ein Unterschied im Mittelwert von 5g/l relevant sein für die Prognose und Therapie. Es lohnt sich also die Signifikanz des Unterschieds der Mittelwert mittels eines t-tests zu prüfen. Zunächst erfolgt die Prüfung der Varianzhomogenität durch den Levene-Test.
+
+
+## 5)	Test auf Varianzhomogenität (Levene-Test)
+
+```{r}
+Tapply(hemoglobin ~ comorbidities, var, na.action=na.omit, data=hosp1) # variances by group
+leveneTest(hemoglobin ~ comorbidities, data=hosp1, center="median")
+```
+Der Levene-Test prüft die Nullhypothese, dass die Varianzen der Gruppen sich nicht unterscheiden (Var1=Var2). Ist der Levene-Test nicht signifikant, so kann von homogenen Varianzen ausgegangen werden.Es ist zu erkennen, dass Homogenität vorliegt, da das Ergebnis des Levene-Test nicht signifikant ist ($p > 0.05$). Daher können wir von gleichen Varianzen ausgehen ($F(1, 208) = 0.8529, p = .3568$). Es ist daher nicht notwendig eine Welch-Korrektur durchzuführen.
+
+## 6)	Ergebnisse des t-Tests für unabhängige Stichproben
+
+Da es sich um eine ungerichtete Hypothese handelt wird mit einem Sig.-Niveau von 0.05,ist “con= 0.95, alt =”two.sided"" zu verwenden. 
+
+
+```{r}
+test2<- t.test(hemoglobin~comorbidities, alternative='two.sided', conf.level=.95, var.equal=TRUE, data=hosp1)
+test2
+
+```
+Die Teststatistik betraegt $t = -2.0939$ und der zugehörige Signifikanzwert $p =  0.03748$ (p<0.05). Damit ist der Unterschied signifikant: Die Mittelwerte der beiden Gruppen mit und ohne die Vorerkrankung "Bluthochdruck" unterscheiden sich ($t(208) = -2.0939, p = 0.03748, n= 209$)
+
+
+$$t_{emp}=-2.0939$$
+$$df=208$$
+$$p-value = 0.03748$$
+```{r}
+qt(.975, df=208)
+```
+$$t_{krit}=1.971$$
+t empierisch ist größer als t kritisch. Das bedeutet, dass die H0 verworfen werden kann.
+
+
+## 7)	Berechnung der Effektstärke
+
+
+
+```{r}
+eff1 <- sqrt ((test2$statistic^2 )/ (test2$statistic^2 + test2$parameter))
+sprintf("Die Effektstärke liegt bei %.2f",eff1)
+```
+
+ Zur Beurteilung der Groesse des Effektes dient die Einteilung von Cohen (1992):    
+
+$$\begin{align}
+\text{Schwacher Effekt: } 0.10 &< ||r|| < 0.30             \\
+\text{Schwacher bis mittlerer Effekt: } 0.30 &= ||r||      \\
+\text{Mittlerer Effekt: } 0.30 &< ||r|| < 0.50             \\
+\text{Mittlerer bis starker Effekt: }0.50 &= ||r||         \\
+\text{Starker Effekt: } 0.50 &< ||r||        
+\end{align}|$$
+
+Im Rahmen des t-Tests fuer unabhängige Stichprobe berechnen wir nach Pearson und interpretieren nach Cohen(1992). 
+Damit entspricht eine Effektstaerke von $0.14$ ein schwacher Effekt vor. Da die beiden Gruppen fast gleich groß sind brauche ich keinen anderen Test für die Effektstärke anzuwenden.
+
+## 8)	Eine Aussage
+
+
+Covid-19-Patient_innen mit der bekannten Vorerkrankung Bluthockdruck haben einen niedrigeren Hämoglubinwert ($M = 128.31, SD = 16.60, n = 101$) als Covid-19-Patient_innen mit keiner oder mit einer andern Vorerkrankung ($M = 133.33 SD = 17.98, n = 109$).
+Die Teststatistik betraegt $t = -2.0939$ und der zugehörige Signifikanzwert $p = 0.03748$. Damit ist der Unterschied signifikant: Mittelwerte der beiden Gruppen mit und ohne die Vorerkrankung "Bluthochdruck" unterscheiden sich signifikant mit (Konfidenzintervall 0.95) ($t(208) = -2.0939, p = 0.03748, n= 209$).t- empierisch ist größer als t- kritisch, wonach die H0 verworfen werden kann. Die Effektstärke liegt allerdings nur bei $r = 0.14$ und entspricht damit einem schwachen Effekt nach Cohen (1992). Allerdings kann beim Hämoglobinwert, der bei einer Covod-19 Erkrankung kritisch ist ein Unterschied im Mittelwert von 5g pro dl relevant sein für die Prognose und Therapie. Ein Fehler der 2. Art wäre in diesem Fall problematischer, da die Vorerkrankung Bluthochdruck als Marker für einen eventuellen schwereren Verlauf unterschätzt werden könnte. H0 kann verworfen werden.
