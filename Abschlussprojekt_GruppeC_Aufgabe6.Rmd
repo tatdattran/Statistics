@@ -1,0 +1,265 @@
+---
+title: "Aufgabe 6: Unterschiedshypothese - Gruppe C"
+output: html_notebook
+---
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(car)
+library(sjstats)
+library(lsr)
+```
+
+```{r}
+library(readxl)
+hosp6 <- read_excel("cleanhospital.xlsx")
+View(hosp6)
+```
+
+
+### Datensatz: cleanhospital.xlsx <br>
+### Var 1 = fever (Faktor) <br>
+### Var 2 = age (AV)
+
+## Aufgabenstellung 
+1)	Hypothese 
+2)	Voraussetzungen für die einfaktoriellen Varianzanalyse ohne Messwiederholung
+3)	Grundlegende Konzepte: Was ist die einfaktoriellen Varianzanalyse ohne Messwiederholung
+4)	Deskriptive Statistiken 
+5)	Prüfung der Varianzhomogenität (Levene-Test)
+6)	Ergebnisse der einfaktoriellen Varianzanalyse ohne Messwiederholung
+7)	Post-hoc-Tests
+8)	Profildiagramm
+9)	Berechnung der Effektstärke
+10)	Eine Aussage
+
+
+
+### Beschreibung
+
+
+In der Regel wird davon ausgegangen, dass die Fähigkeit hoch zu fiebern mit dem Alter abnimmt. Dies hat mit dem altern des Immunsystems zu tun. Bei Patient*innen über 70 können bleibt bei ca. 20 bis 30 Prozent der ernsthaften Infektionen das Fieber ganz aus. Die Covid-19-Patient_innen in der Stichprobe wurden je nach Temperatur auf vier verschiedenen Gruppen aufgeteilt (normal, erhöht, fieber und hohes fieber). Nun wollten wir sehen, ob es einen Unterschied hinsichtlich der Mittelwerte beim Alter in den vier Gruppen gibt. Erwartungsgemäss sollte das Fieber bei den älteren Patient_innen eher niedrig sein.  
+
+
+```{r}
+sum(is.na(hosp6))
+```
+
+```{r}
+hosp6 = na.omit(hosp6)
+sum(is.na(hosp6))
+```
+
+
+```{r}
+table(hosp6$fever)
+```
+
+```{r}
+library(PMCMRplus)
+x <- hosp6$age
+g <- factor(hosp6$fever)
+fit <- aov(x ~ g)
+shapiro.test(residuals(fit))
+bartlett.test(x ~ g)
+anova(fit)
+## works with object of class aov
+summary(tamhaneDunnettTest(fit, alternative = "greater"))
+```
+
+Der Shapiro-Test deutet an, dass es einen signifikanten Mittelwertsunterschied beim Alter bei den Gruppe "erhöht" und "hohes fieber" gibt
+
+## 1. Hypothese
+
+H1: Es gibt einen Mittelwertsunterschied hinsichtlich des Alters der vier Gruppen (normal,erhöht, fieber, hohes fieber).
+$$M_1≠M_2≠M_3≠M_4$$ für mindestens einen Vergleich.
+
+H0: Es gibt keinen Mittelwertsunterschied hinsichtlich des Alters der vier Gruppen (normal,erhöht, fieber, hohes fieber).
+$$M_1=M_2=M_3=M_4$$
+
+## 2) Voraussetzungen der einfaktoriellen Varianzanalyse ohne Messwiederholung
+
+- Die abhängige Variable ist min. intervallskaliert -> Alter ist metrisch. 
+
+- Die unabhängige Variable (Faktor) ist kategorial (nominal- oder ordinalskaliert)-> Es gibt vier Fiebergruppen (normal, erhöht, fieber, hohes fieber). 
+
+- Die durch den Faktor gebildeten Gruppen sind unabhängig-> Die Gruppen sind unabhängig, da sie schaft voneinander getrennt sind (normal ($>37.4°$), erhöht ($37.5°\le erhöht \le 38°$), fieber ($38.1° \le fiber  \le 39°$), hohes fieber ($>39.1°$)). 
+
+- Die abhängige Variablen ist normalverteilt innerhalb jeder der Gruppen (Ab > 25 Probanden pro Gruppe sind Verletzungen in der Regel unproblematisch)
+-> siehe Histogramm und QQplot
+
+- Homogenität der Varianzen: Die Gruppen stammen aus Grundgesamtheiten mit annähernd identischen Varianzen der abhängigen Variablen -> siehe Levene-Test
+
+
+## 3) Grundlegende Konzepte: Die Grundidee der Varianzanalyse
+
+Die einfaktorielle Varianzanalyse – auch "einfaktorielle ANOVA", da in Englisch "Analysis of Variance" – testet, ob sich die Mittelwerte mehrerer unabhängiger Gruppen (oder Stichproben) unterscheiden, die durch eine kategoriale unabhängige Variable definiert werden. 
+
+Das Prinzip der Varianzanalyse besteht in der Zerlegung der Varianz der abhängigen Variable. Die Gesamtvarianz setzt sich aus der sogenannten "Varianz innerhalb der Gruppen" und der "Varianz zwischen den Gruppen" zusammen. 
+
+Die einfaktorielle ANOVA stellt eine Verallgemeinerung des t-Tests für unabhängige Stichproben für Vergleich von mehr als zwei Gruppen (oder Stichproben) dar.
+
+Die Fragestellung der einfaktoriellen Varianzanalyse wird oft so verkürzt: "Unterscheiden sich die Mittelwerte einer unabhängigen Variable zwischen mehreren Gruppen? Welche Faktorstufen unterscheiden sich?"
+
+
+### Boxplots 
+
+
+```{r}
+boxplot(hosp6$age ~ hosp6$fever, #erst die AV, dann die UV
+
+main = "Boxplots zum Vergleich", ylab = "age", xlab= "Status" , # Beschriftung des Boxplots
+
+col = c("lightgreen", "deepskyblue","tomato", "yellow")) # Farben 
+
+```
+
+Es liegen kaum Ausreißer vor. Es zeichnen sich Unterschied in den zentralen Tendenz ab, wobei insgesammt keine großen Unterschiede und Überschneidungen der Werte zu erkennen sind. 
+
+### Prüfung der Normalverteilung
+
+#### Histogramm
+
+```{r}
+hosp6 %>%
+group_by(fever) %>% #Teilung nach UV
+ggplot(aes(age, color=fever)) + # Die Werte 
+geom_histogram(aes(fill = fever), bins = 15) + # ggplot ist ein histogramm + Teilung für die Legende + breaks/bin sind 12
+facet_wrap(~fever) + # drei Histogramm 
+theme_classic()+ # Farbe
+labs(x= "fever",y = "Anzahl" )#Beschriftung 
+```
+
+Die Normalverteilung ist in den Gruppen normal ,erhöht und fieber von der Tendenz her vorhanden. In der Gruppe hohes fieber lässt sich keine Normalverteilung mittels Histgramm erkennen. Da die Gruppe 25 Patient_innen umfasst, ist dies nicht weiter problematisch. 
+
+
+#### QQPlot
+```{r}
+library(car)
+
+qqPlot(age ~ fever, data=hosp6, 
+layout=c(1,4))
+```
+
+Es handelt sich bei der Anova um ein sehr robustes Verfahren. Daher ist die Verletztung der Normalverteilung im kleinen Rahmen vertragbar. In diesem Beispiel zeigt es sich, dass die Normalverteilung bei vier Gruppen von der Tendenz gegeben ist. 
+
+## 4)	Deskriptive Statistiken
+Die Tabelle in Abbildung gibt die Mittelwerte, Standardabweichungen und Grössen aller vier Gruppen wieder. Diese Informationen werden für die Berichterstattung verwendet.
+
+```{r}
+library (dplyr)
+hosp6 %>%
+group_by(fever) %>%
+  summarise(Anzahl = n(), Mittelwert = mean(age), Median = median(age), Standardabweichung = sd(age)) %>%
+  mutate_if(is.numeric, round, 2)
+```
+Es gibt einen Alters-Mittelwertsunterschied zwischen einzelnen den Fieber-Gruppen. Den niedrigsten Alters-Mittelwert hat die Gruppe mit erhöhter Temperatur "erhoeht" (M = 62.08, SD = 15.59, n = 37) die zweitniedrigeren Alters-Mittelwerte haben die Gruppe mit moderatem Fieber "fieber" (M = 64.55, SD = 14.93, n = 67) und die Gruppe mit normaler Temperatur "normal" (M = 64.77, SD = 15.17, n = 79). Den höchsten Altersmittelwert hat überraschdenderweise die Gruppe "hohes fieber" (M = 72.04, SD = 14.59, n = 27) Wie bereits beim Boxplot zu erkennen war, ist der Abstand der Altersmittelwerte der Gruppen "erhoeht" und "hohes fieber" der einzig deutlich zu erkennende.
+
+
+## 5)	Prüfung der Varianzhomogenität (Levene-Test)
+
+Der Levene-Test prüft die Nullhypothese, dass die Varianzen der Gruppen sich nicht unterscheiden. Ist der Levene-Test nicht signifikant, so kann von homogenen Varianzen ausgegangen. Wäre der Levene-Test jedoch signifikant, so wäre eine der Grundvoraussetzungen der Varianzanalyse verletzt. Gegen leichte Verletzungen gilt die Varianzanalyse als robust; vor allem bei genügend grossen und etwa gleich grossen Gruppen sind Verletzungen nicht problematisch. Bei ungleich grossen Gruppen führt eine starke Verletzung der Varianzhomogenität zu einer Verzerrung des F-Tests. Alternativ können dann auf den Welch-Test zurückgegriffen werden. Dabei handelt es sich um adjustierte F-Tests.
+
+
+```{r}
+leveneTest(hosp6$age ~ hosp6$fever, center="mean")
+```
+
+Im vorliegenden Beispiel ist der Levene-Test nicht signifikant ($F(3,209) = 0.1059, p = .9566$), so dass von Varianzhomogenität ausgegangen werden kann. Das heisst - es muss keine Welch-Korrektur durchgeführt werden.
+
+
+
+
+## 6)	Ergebnisse der einfaktoriellen Varianzanalyse
+
+```{r}
+ANOVAhosp <- aov(data=hosp6, hosp6$age~hosp6$fever) 
+summary (ANOVAhosp)
+```
+
+Das Gesammtmodel ist nicht signifikant geworden ($F(3, 206) = 2.431 , p = .0678$). Eigentlich lassen sich die Daten mit Blick auf die Fragestellung nicht weiter interpretieren. Wir machen trotzdem aus Interesse und der Vollständigkeitshalber einen Post-hoc-Test.
+
+
+## 7)	Post-hoc-Tests
+
+Obwohl der F -Test zeigt, dass es keinen Zusammenhang zwischen dem Faktor von der Körpertemperatur und dem Alter gibt prüfen wir anhand des Post-hoc-Tests ob, zwischen einzelnen Faktorstufen (Körpertemperaturen "fever") signifikante Unterschiede bezüglich des Alters gibt. Bei der Berechnung von Post-hoc-Tests wird im Prinzip für jede Kombination von zwei Mittelwerten ein t -Test durchgeführt. Im aktuellen Beispiel mit vier Gruppen errechnet man wie folgt 6 Tests. 
+
+$$\frac{k\cdot(k-1)}{2} =\frac{4\cdot(4-1)}{2} = \frac{12}{2} = 6$$
+Multiple Tests sind jedoch problematisch, da der Alpha-Fehler (die fälschliche Ablehnung der Nullhypothese) mit der Anzahl der Vergleiche steigt. Diese Fehlerwahrscheinlichkeit wird als “Familywise Error Rate” bezeichnet.
+
+Der TuckyHSD eignet sich als Post-toc-Test für die Vartiablen bei denen Varianzhomogenität vorliegt. Wenn der Levene-Test auf Heterogenität hingewiesen hätte wäre der Games-Howell-Test sinnvoller zu verwenden.
+
+```{r}
+TUKEYhosp<- TukeyHSD(aov(data=hosp6, hosp6$age ~ hosp6$fever))
+TUKEYhosp
+```
+
+
+```{r}
+plot(TUKEYhosp , las=1 , col="red")
+```
+ 
+Es wird ersichtlich, dass sich auch beim vergleich der einzelnen Faktorstufen kaum signifikante Unterschiede zeigen ($p > .05$). Allein die Kombination der Gruppe mit der erhöhten Temperatur("erhoeht") und der Gruppe mit dem hohen Fieber ("hohes fieber") zeigt einen sehr knap signifikanten Unterschied $p = 0,0494$. Es können keine unabhängigen generalisierbaren Gruppen aus den Faktorstufen (fever) hinsichtlich des Alters gebildet werden. Auch der Post-toc-Test bestätigt, das die Daten nicht interpretiert werden können. Es wird ersichtlich, dass sich die Faktorstufen auch untereinander nicht signifikant bezüglich des Alters unterscheiden. Eine bildung von Gruppen nach deren Körpertemperatur macht keinen Sinn. Im Hinblick auf die allgemeine These, dass ältere Menschen eher selten hoch fiebern, ist das Ergebnis des Post-toc-Tests dennoch interessant.
+
+## 8) Profildiagramm
+
+```{r}
+library (ggplot2)
+ggplot(hosp6, aes(x=fever, y=age, group=1))+
+  stat_summary(fun = mean, geom="point", size=3)+
+  stat_summary(fun = mean, geom="line")+
+  stat_summary(fun.data = mean_cl_normal, geom="errorbar",width=.2, size=.25)+
+  labs(x="Einlieferungsgrund", y="temperatur")+
+  theme_classic()
+```
+
+
+
+## 9)	Berechnung der Effektstärke
+
+
+### Das partielle Eta-Quadrat
+
+Das partielle Eta-Quadrat (partielles η2) ist ein Mass für die Effektgrösse: Es setzt die Variation, die durch einen Faktor erklärt wird, in Bezug mit jener Variation, die nicht durch andere Faktoren im Modell erklärt wird. Das heisst, es wird ausschliesslich jene Variation betrachtet, welche nicht durch die anderen Faktoren im Modell erklärt wird. Das partielle Eta-Quadrat zeigt, welchen Anteil davon ein Faktor erklärt. Im Falle der einfaktoriellen Varianzanalyse ist das partielle Eta-Quadrat ist jener Anteil der korrigierten Gesamtvariation, der durch das Modell erklärt wird.
+
+```{r}
+library(effectsize)
+
+ANOVAhosp <- aov(data=hosp6, hosp6$age ~ hosp6$fever)
+eta <- effectsize::eta_squared(ANOVAhosp, partial = TRUE)
+```
+
+
+```{r}
+eta
+```
+Hinweis: Im vorliegenden Beispiel beträgt das partielle Eta-Quadrat $0.03$. Das heisst, dass mit diesen Daten theoretisch 3% der Variation in Alter durch die Körpertemperatur aufgeklärt werden kann.Da das Gesamtmodell jedoch nicht signifikant ist, kann hier keine sinnvolle Interpretation der Ergebnisse erfolgen. Wir haben trotzedem der Vollständigkeit halber die Effektstärke berrechnet. 
+
+### Effektstärke
+
+
+```{r}
+
+eff<- sqrt(eta$Eta2/(1-eta$Eta2))
+sprintf ("Die Effektstärke liegt bei:%.2f",eff)
+```
+
+
+Um zu beurteilen, wie gross dieser Effekt ist, kann man sich an der Einteilung von Cohen (1988) orientieren:
+
+$$\begin{align}
+\text{Schwacher Effekt: } 0.10 &< ||f|| < 0.25             \\
+\text{Schwacher bis mittlerer Effekt: } 0.25 &= ||f||      \\
+\text{Mittlerer Effekt: } 0.25 &< ||f|| < 0.40             \\
+\text{Mittlerer bis starker Effekt: }0.40 &= ||f||         \\
+\text{Starker Effekt: } 0.40 &< ||f||        
+\end{align}$$
+
+Damit entspricht eine Effektstärke von $0.19$ einem schwachen Effekt. Dies ist allerdings nur theoretisch, da eine Interpretation der Daten aufgrund der nicht vorhandenen Signifikanz der Varianzanlyse keine sinnvolle Interpretation der Daten möglich ist.
+
+## 10)	Eine Aussage
+
+Durch die Einteilung der Covid-19-Patient_innen nach ihren Körpertemperaturen bei Einlieferung in das Krankenhaus lässt sich keine Aussage über den Altersduchschnitt der Gruppen treffen. Das Gesamtmodell ist nicht nach dem Ergebnis der Varianzanalyse nicht signifikant geworden ($F(3, 206) = 2.431 , p = .0678$). Eigentlich lassen sich die Daten mit Blick auf die Fragestellung nicht weiter interpretieren. Dennoch zeigte der Post-toc-Test nach TuckyHSD sogar einen schwach signifikanten UNterschied der Altersmittelwerte hohes Fieber "hohes fieber" und erhöhter Temperatur "erhoeht" ($p = 0.0494688$). Damit kann festgehalten, werden, dass die Bildung der vier Faktorstufen nach Körpertemperatur im Hinblick auf die Fragestellung nicht sinnvoll ist. Die H0 muss beibehalten werden 
+
+
